@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+*.pyo
+*.log
+test_results*.csv
+test_results*.json
+test_results*.txt
+.env
+*.env

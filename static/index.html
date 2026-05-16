@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>당근마켓 동네업체 크롤러</title>
+<style>
+:root{
+  --or:#ff6f0f;--or2:#e55c00;--or-bg:#fff4ed;
+  --bg:#f2f3f5;--card:#fff;--border:#e4e4e4;
+  --text:#1a1a1a;--sub:#777;
+  --green:#27ae60;--red:#e74c3c;--blue:#2980b9;
+  --r:12px;--sh:0 2px 12px rgba(0,0,0,.07);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Apple SD Gothic Neo','Malgun Gothic',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+
+/* ── 헤더 ── */
+.hdr{background:var(--or);height:58px;display:flex;align-items:center;padding:0 24px;gap:12px;
+     box-shadow:0 2px 10px rgba(255,111,15,.35);position:sticky;top:0;z-index:200}
+.hdr-logo{font-size:24px}
+.hdr h1{color:#fff;font-size:17px;font-weight:800;letter-spacing:-.3px}
+.hdr-tag{background:rgba(255,255,255,.22);color:#fff;font-size:11px;padding:3px 9px;border-radius:20px;font-weight:700;margin-left:4px}
+
+/* ── 레이아웃 ── */
+.wrap{display:grid;grid-template-columns:360px 1fr;gap:18px;max-width:1440px;margin:0 auto;padding:18px}
+@media(max-width:960px){.wrap{grid-template-columns:1fr}}
+
+/* ── 카드 ── */
+.card{background:var(--card);border-radius:var(--r);box-shadow:var(--sh);padding:20px;border:1px solid var(--border);margin-bottom:14px}
+.card:last-child{margin-bottom:0}
+.card-t{font-size:13px;font-weight:800;color:var(--or);margin-bottom:14px;display:flex;align-items:center;gap:6px}
+
+/* ── 스텝 배지 ── */
+.step{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;
+      background:var(--or);color:#fff;border-radius:50%;font-size:11px;font-weight:800;flex-shrink:0}
+
+/* ── 셀렉트 / 인풋 ── */
+select,input[type=number],input[type=text]{
+  width:100%;padding:9px 11px;border:1.5px solid var(--border);border-radius:8px;
+  font-size:13px;background:#fff;outline:none;transition:border .15s;
+  font-family:inherit;color:var(--text);cursor:pointer;appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23aaa' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 10px center;padding-right:28px;
+}
+input[type=number],input[type=text]{background-image:none;padding-right:11px}
+select:focus,input:focus{border-color:var(--or)}
+select:disabled{background:#f7f7f7;color:#aaa;cursor:not-allowed}
+.fg{margin-bottom:11px}
+label.lbl{font-size:11px;font-weight:700;color:var(--sub);display:block;margin-bottom:5px;letter-spacing:.3px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+
+/* ── 칩 ── */
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.chip{padding:5px 13px;border-radius:20px;border:1.5px solid var(--border);font-size:12px;
+      cursor:pointer;transition:all .12s;background:#fff;font-weight:600;user-select:none}
+.chip:hover{border-color:var(--or);color:var(--or)}
+.chip.on{background:var(--or);color:#fff;border-color:var(--or)}
+
+/* ── 토글 ── */
+.tog-row{display:flex;align-items:center;justify-content:space-between;padding:9px 0}
+.tog-info .tog-t{font-size:13px;font-weight:700}
+.tog-info .tog-s{font-size:11px;color:var(--sub);margin-top:2px}
+.sw{position:relative;width:44px;height:24px;flex-shrink:0}
+.sw input{opacity:0;width:0;height:0}
+.sl{position:absolute;inset:0;background:#ccc;border-radius:24px;cursor:pointer;transition:.25s}
+.sl::before{content:'';position:absolute;width:18px;height:18px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.25s}
+input:checked+.sl{background:var(--or)}
+input:checked+.sl::before{transform:translateX(20px)}
+
+/* ── 버튼 ── */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;
+     padding:11px 18px;border-radius:9px;font-size:14px;font-weight:800;
+     cursor:pointer;border:none;transition:all .12s;font-family:inherit;letter-spacing:-.2px}
+.btn-or{background:var(--or);color:#fff;width:100%}
+.btn-or:hover{background:var(--or2);transform:translateY(-1px)}
+.btn-or:disabled{background:#ccc;cursor:not-allowed;transform:none}
+.btn-sm{padding:7px 14px;font-size:12px;border-radius:7px}
+.btn-outline{background:#fff;border:1.5px solid var(--border);color:var(--text)}
+.btn-outline:hover{border-color:var(--or);color:var(--or)}
+.btn-green{background:var(--green);color:#fff}
+.btn-green:hover{background:#219150}
+.btn-blue{background:var(--blue);color:#fff}
+.btn-blue:hover{background:#1f6897}
+.btn-gray{background:#f0f0f0;color:#555;border:1.5px solid var(--border)}
+.btn-gray:hover{background:#e8e8e8}
+
+/* ── 상태 바 ── */
+.sbar{padding:12px 16px;border-radius:10px;display:flex;align-items:center;gap:10px;font-size:13px;font-weight:700;margin-bottom:14px}
+.sbar.idle{background:var(--or-bg);color:var(--or)}
+.sbar.run{background:#fff8e1;color:#e67e00}
+.sbar.done{background:#e8f5e9;color:var(--green)}
+.sbar.err{background:#fdecea;color:var(--red)}
+.dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.idle .dot{background:var(--or)}
+.run .dot{background:#e67e00;animation:blink 1s infinite}
+.done .dot{background:var(--green)}
+.err .dot{background:var(--red)}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+
+/* ── 통계 ── */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+.stat{background:var(--card);border-radius:10px;padding:14px 10px;text-align:center;border:1px solid var(--border)}
+.stat-n{font-size:26px;font-weight:900;color:var(--or)}
+.stat-l{font-size:11px;color:var(--sub);margin-top:3px;font-weight:700}
+
+/* ── 로그 ── */
+.logbox{background:#0f1117;border-radius:10px;padding:13px 14px;height:180px;overflow-y:auto;
+        font-family:'Fira Code','Courier New',monospace;font-size:11.5px;color:#ccc;line-height:1.8}
+.ll{color:#888}.ll.ok{color:#6fcf97}.ll.err{color:#eb5757}.ll.info{color:#56ccf2}
+
+/* ── 다운로드 버튼 ── */
+.dl-row{display:flex;gap:8px;flex-wrap:wrap}
+
+/* ── 테이블 ── */
+.tbl-wrap{overflow-x:auto;border-radius:10px;border:1px solid var(--border);max-height:480px;overflow-y:auto}
+table{width:100%;border-collapse:collapse;font-size:12.5px;min-width:750px}
+thead{position:sticky;top:0;z-index:10}
+thead th{background:var(--or);color:#fff;padding:10px 11px;text-align:left;font-weight:800;font-size:11.5px;white-space:nowrap}
+tbody tr{border-bottom:1px solid var(--border);transition:background .1s}
+tbody tr:hover{background:var(--or-bg)}
+tbody tr:nth-child(even){background:#fafafa}
+tbody tr:nth-child(even):hover{background:var(--or-bg)}
+td{padding:8px 11px;vertical-align:middle}
+td.ph{font-family:'Courier New',monospace;font-weight:800;color:var(--or2);font-size:13px;white-space:nowrap}
+td.sub-ph{font-family:'Courier New',monospace;font-size:11px;color:#aaa}
+.bdg{display:inline-block;padding:2px 8px;border-radius:20px;font-size:10.5px;font-weight:700;background:var(--or-bg);color:var(--or)}
+.empty-row td{text-align:center;padding:40px;color:var(--sub);font-size:13px}
+.lnk{color:var(--sub);font-size:14px;text-decoration:none}
+.lnk:hover{color:var(--or)}
+
+/* ── 010 하이라이트 배지 ── */
+.tag-010{display:inline-block;background:#fff0e6;color:var(--or2);font-size:10px;
+         font-weight:800;padding:1px 6px;border-radius:4px;margin-left:4px;border:1px solid #ffd4b8}
+
+@media(max-width:600px){.stats{grid-template-columns:1fr 1fr}}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-thumb{background:#ddd;border-radius:5px}
+</style>
+</head>
+<body>
+
+<!-- 헤더 -->
+<div class="hdr">
+  <span class="hdr-logo">🥕</span>
+  <h1>당근마켓 동네업체 크롤러</h1>
+  <span class="hdr-tag">010 번호 추출</span>
+  <span class="hdr-tag">엑셀 다운로드</span>
+</div>
+
+<div class="wrap">
+
+<!-- ══════════ 왼쪽 설정 패널 ══════════ -->
+<div>
+
+  <!-- STEP 1: 지역 선택 -->
+  <div class="card">
+    <div class="card-t"><span class="step">1</span> 지역 선택</div>
+
+    <div class="fg">
+      <label class="lbl">시 / 도</label>
+      <select id="sel-sido" onchange="onSido()">
+        <option value="">— 시/도 선택 —</option>
+      </select>
+    </div>
+    <div class="fg">
+      <label class="lbl">구 / 군</label>
+      <select id="sel-sigungu" onchange="onSigungu()" disabled>
+        <option value="">— 구/군 선택 —</option>
+      </select>
+    </div>
+    <div class="fg">
+      <label class="lbl">동 / 읍 / 면 <span style="color:var(--sub);font-weight:400">(미선택 시 구/군 전체)</span></label>
+      <select id="sel-dong" disabled>
+        <option value="">— 동 선택 (선택사항) —</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- STEP 2: 카테고리 -->
+  <div class="card">
+    <div class="card-t"><span class="step">2</span> 업종 카테고리</div>
+    <div class="chips" id="cat-chips"></div>
+  </div>
+
+  <!-- STEP 3: 옵션 -->
+  <div class="card">
+    <div class="card-t"><span class="step">3</span> 수집 옵션</div>
+
+    <div class="row2">
+      <div class="fg">
+        <label class="lbl">최대 수집 업체 수</label>
+        <input type="number" id="max-n" value="60" min="5" max="300"/>
+      </div>
+      <div class="fg">
+        <label class="lbl">병렬 워커</label>
+        <input type="number" id="workers" value="4" min="1" max="8"/>
+      </div>
+    </div>
+
+    <div class="tog-row">
+      <div class="tog-info">
+        <div class="tog-t">📱 010 번호만 수집</div>
+        <div class="tog-s">010 이외 번호는 자동 제외</div>
+      </div>
+      <label class="sw"><input type="checkbox" id="only-010" checked/><span class="sl"></span></label>
+    </div>
+
+    <div class="tog-row">
+      <div class="tog-info">
+        <div class="tog-t">🛡️ 프록시 로테이션</div>
+        <div class="tog-s">공개 프록시 자동 수집·검증 (느림)</div>
+      </div>
+      <label class="sw"><input type="checkbox" id="use-proxy"/><span class="sl"></span></label>
+    </div>
+
+    <button class="btn btn-or" id="start-btn" onclick="startCrawl()" style="margin-top:14px">
+      🥕 크롤링 시작
+    </button>
+  </div>
+
+</div>
+
+<!-- ══════════ 오른쪽 결과 패널 ══════════ -->
+<div>
+
+  <!-- 상태 -->
+  <div class="sbar idle" id="sbar">
+    <div class="dot"></div>
+    <span id="sbar-txt">대기 중 — 왼쪽에서 지역과 카테고리를 선택 후 시작하세요</span>
+  </div>
+
+  <!-- 통계 -->
+  <div class="stats">
+    <div class="stat"><div class="stat-n" id="st-total">0</div><div class="stat-l">수집 업체</div></div>
+    <div class="stat"><div class="stat-n" id="st-010">0</div><div class="stat-l">010 번호</div></div>
+    <div class="stat"><div class="stat-n" id="st-rate">0%</div><div class="stat-l">010 비율</div></div>
+    <div class="stat"><div class="stat-n" id="st-time">0s</div><div class="stat-l">경과 시간</div></div>
+  </div>
+
+  <!-- 로그 -->
+  <div class="card" style="padding:16px;margin-bottom:14px">
+    <div class="card-t" style="margin-bottom:8px">📋 실시간 로그</div>
+    <div class="logbox" id="logbox"><span class="ll">대기 중...</span></div>
+  </div>
+
+  <!-- 다운로드 (완료 후 표시) -->
+  <div class="card" id="dl-card" style="display:none;padding:16px;margin-bottom:14px">
+    <div class="card-t" style="margin-bottom:10px">💾 결과 다운로드</div>
+    <div class="dl-row" id="dl-row"></div>
+    <div style="margin-top:8px;font-size:11px;color:var(--sub)">
+      ※ 엑셀 파일은 010 번호 강조 서식이 적용됩니다
+    </div>
+  </div>
+
+  <!-- 결과 테이블 -->
+  <div class="card" style="padding:16px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <div class="card-t" style="margin-bottom:0">📊 수집 결과</div>
+      <div style="display:flex;gap:6px" id="tbl-btns" style="display:none">
+        <button class="btn btn-sm btn-gray" onclick="filterOnly010()" id="filter-010-btn">📱 010만 보기</button>
+        <button class="btn btn-sm btn-gray" onclick="filterAll()" id="filter-all-btn" style="display:none">전체 보기</button>
+      </div>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:40px">#</th>
+            <th>업체명</th>
+            <th>010 번호</th>
+            <th>전화번호(전체)</th>
+            <th>카테고리</th>
+            <th>주소</th>
+            <th style="width:36px">링크</th>
+          </tr>
+        </thead>
+        <tbody id="tbody">
+          <tr class="empty-row"><td colspan="7">수집된 데이터가 없습니다</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<script>
+// ── 전역 ─────────────────────────────────────────────
+let regionTree = {};
+let selCat     = "";         // 선택된 카테고리 코드
+let selCatName = "";
+let jobId      = null;
+let evtSrc     = null;
+let startTs    = null;
+let timer      = null;
+let rowIdx     = 0;
+let cnt010     = 0;
+let allRows    = [];         // 전체 행 DOM 캐시
+let showing010 = false;
+
+// ── 초기화 ───────────────────────────────────────────
+async function init(){
+  // 지역 트리 로드
+  const r = await fetch("/api/regions");
+  regionTree = await r.json();
+  const sido = document.getElementById("sel-sido");
+  Object.keys(regionTree).sort().forEach(s => {
+    sido.add(new Option(s, s));
+  });
+
+  // 카테고리 칩
+  const cr = await fetch("/api/categories");
+  const cats = await cr.json();
+  const cc = document.getElementById("cat-chips");
+  cats.forEach(({name, code}) => {
+    const c = document.createElement("div");
+    c.className = "chip" + (code === "" ? " on" : "");
+    c.textContent = name;
+    c.dataset.code = code;
+    c.dataset.name = name;
+    if(code === "") { selCat = ""; selCatName = name; }
+    c.onclick = () => {
+      document.querySelectorAll(".chip").forEach(x => x.classList.remove("on"));
+      c.classList.add("on");
+      selCat = code;
+      selCatName = name;
+    };
+    cc.appendChild(c);
+  });
+}
+
+// ── 지역 연동 ────────────────────────────────────────
+function onSido(){
+  const sido = document.getElementById("sel-sido").value;
+  const sg   = document.getElementById("sel-sigungu");
+  const dg   = document.getElementById("sel-dong");
+  sg.innerHTML = '<option value="">— 구/군 선택 —</option>';
+  dg.innerHTML = '<option value="">— 동 선택 (선택사항) —</option>';
+  sg.disabled = !sido; dg.disabled = true;
+  if(!sido) return;
+  Object.keys(regionTree[sido]).sort().forEach(g => sg.add(new Option(g, g)));
+  sg.disabled = false;
+}
+
+function onSigungu(){
+  const sido  = document.getElementById("sel-sido").value;
+  const sg    = document.getElementById("sel-sigungu").value;
+  const dg    = document.getElementById("sel-dong");
+  dg.innerHTML = '<option value="">— 동 선택 (선택사항) —</option>';
+  dg.disabled = true;
+  if(!sido || !sg) return;
+  const dongs = regionTree[sido][sg] || [];
+  dongs.forEach(d => dg.add(new Option(d.name, d.slug)));
+  dg.disabled = false;
+}
+
+// ── 크롤링 시작 ──────────────────────────────────────
+async function startCrawl(){
+  const sido    = document.getElementById("sel-sido").value;
+  const sigungu = document.getElementById("sel-sigungu").value;
+  const dongSel = document.getElementById("sel-dong");
+  const dongSlug= dongSel.value;
+  const dongName= dongSel.options[dongSel.selectedIndex]?.text || "";
+
+  if(!sido){ alert("시/도를 선택하세요"); return; }
+  if(!sigungu){ alert("구/군을 선택하세요"); return; }
+
+  // 지역 슬러그: 동 선택 시 동 슬러그, 미선택 시 구군명으로 키워드 검색
+  const regionSlug = dongSlug || "";
+  const locLabel   = dongSlug ? `${sido} ${sigungu} ${dongName}` : `${sido} ${sigungu}`;
+
+  if(evtSrc){ evtSrc.close(); evtSrc = null; }
+  resetUI();
+  setStatus("run", `🔄 ${locLabel} | ${selCatName} 수집 중...`);
+  document.getElementById("start-btn").disabled = true;
+  document.getElementById("start-btn").textContent = "⏳ 수집 중...";
+  startTs = Date.now();
+  timer = setInterval(updateTimer, 1000);
+
+  const payload = {
+    sido, sigungu, dong: dongName,
+    region_slug:   regionSlug,
+    category_code: selCat,
+    category_name: selCatName,
+    max_n:     parseInt(document.getElementById("max-n").value) || 60,
+    workers:   parseInt(document.getElementById("workers").value) || 4,
+    use_proxy: document.getElementById("use-proxy").checked,
+    only_010:  document.getElementById("only-010").checked,
+  };
+
+  // 동 미선택 시 구군+카테고리 키워드 검색 방식
+  if(!regionSlug && sigungu){
+    payload.keywords = selCat ? null : [`${sigungu}`];
+  }
+
+  const res = await fetch("/api/crawl", {
+    method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload)
+  });
+  const {job_id} = await res.json();
+  jobId = job_id;
+
+  evtSrc = new EventSource(`/api/stream/${job_id}`);
+  evtSrc.onmessage = e => handleMsg(JSON.parse(e.data));
+  evtSrc.onerror   = () => { setStatus("err","❌ 연결 오류"); stopTimer(); };
+}
+
+// ── SSE 처리 ─────────────────────────────────────────
+function handleMsg(msg){
+  if(msg.type === "log"){
+    addLog(msg.msg);
+  } else if(msg.type === "result"){
+    addRow(msg.data);
+  } else if(msg.type === "done"){
+    evtSrc.close();
+    stopTimer();
+    const total = document.getElementById("st-total").textContent;
+    if(msg.status === "done"){
+      setStatus("done", `✅ 완료 — ${msg.total}개 업체 / 010번호 ${cnt010}개 수집`);
+      showDownload();
+    } else {
+      setStatus("err", "❌ 오류 발생");
+    }
+    document.getElementById("start-btn").disabled = false;
+    document.getElementById("start-btn").textContent = "🥕 크롤링 시작";
+    document.getElementById("tbl-btns").style.display = "flex";
+  }
+}
+
+// ── 행 추가 ─────────────────────────────────────────
+function addRow(r){
+  rowIdx++;
+  const tbody = document.getElementById("tbody");
+  if(rowIdx === 1) tbody.innerHTML = "";
+
+  const has010 = !!r.phone_010;
+  if(has010) cnt010++;
+
+  const tr = document.createElement("tr");
+  tr.dataset.has010 = has010 ? "1" : "0";
+  tr.innerHTML = `
+    <td style="color:#bbb;font-size:11px;text-align:center">${rowIdx}</td>
+    <td>
+      <b style="font-size:13px">${esc(r.name)}</b>
+      ${has010 ? '<span class="tag-010">010</span>' : ''}
+    </td>
+    <td class="ph">${esc(r.phone_010 || '—')}</td>
+    <td class="sub-ph">${esc(r.phone || '—')}</td>
+    <td><span class="bdg">${esc(r.category || '—')}</span></td>
+    <td style="font-size:11.5px;color:var(--sub);max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"
+        title="${esc(r.address)}">${esc(r.address || '—')}</td>
+    <td><a href="${esc(r.url)}" target="_blank" class="lnk">🔗</a></td>
+  `;
+  tbody.appendChild(tr);
+  allRows.push(tr);
+
+  // 통계 업데이트
+  document.getElementById("st-total").textContent = rowIdx;
+  document.getElementById("st-010").textContent   = cnt010;
+  document.getElementById("st-rate").textContent  = rowIdx ? Math.round(cnt010/rowIdx*100)+"%" : "0%";
+
+  // 스크롤
+  tbody.parentElement.scrollTop = tbody.parentElement.scrollHeight;
+}
+
+// ── 로그 추가 ────────────────────────────────────────
+function addLog(msg){
+  const box = document.getElementById("logbox");
+  if(box.querySelector(".ll")?.textContent === "대기 중...") box.innerHTML = "";
+  const d = document.createElement("div");
+  d.className = "ll" + (msg.includes("[✓]") ? " ok" : msg.includes("[오류]") ? " err" : msg.includes("[시작]")||msg.includes("[완료]") ? " info" : "");
+  d.textContent = msg;
+  box.appendChild(d);
+  box.scrollTop = box.scrollHeight;
+}
+
+// ── 다운로드 ─────────────────────────────────────────
+function showDownload(){
+  const card = document.getElementById("dl-card");
+  const row  = document.getElementById("dl-row");
+  card.style.display = "block";
+  row.innerHTML = `
+    <a href="/api/download/${jobId}/xlsx"   class="btn btn-sm btn-green">📊 엑셀(xlsx) 다운로드</a>
+    <a href="/api/download/${jobId}/csv"    class="btn btn-sm btn-blue">📋 CSV 다운로드</a>
+    <a href="/api/download/${jobId}/phones" class="btn btn-sm btn-outline">📱 010번호 TXT</a>
+  `;
+}
+
+// ── 필터 ─────────────────────────────────────────────
+function filterOnly010(){
+  showing010 = true;
+  allRows.forEach(tr => {
+    tr.style.display = tr.dataset.has010 === "1" ? "" : "none";
+  });
+  document.getElementById("filter-010-btn").style.display = "none";
+  document.getElementById("filter-all-btn").style.display = "";
+}
+function filterAll(){
+  showing010 = false;
+  allRows.forEach(tr => tr.style.display = "");
+  document.getElementById("filter-010-btn").style.display = "";
+  document.getElementById("filter-all-btn").style.display = "none";
+}
+
+// ── 유틸 ─────────────────────────────────────────────
+function setStatus(type, txt){
+  const b = document.getElementById("sbar");
+  b.className = `sbar ${type}`;
+  document.getElementById("sbar-txt").textContent = txt;
+}
+function resetUI(){
+  rowIdx = 0; cnt010 = 0; allRows = []; showing010 = false;
+  document.getElementById("tbody").innerHTML = '<tr class="empty-row"><td colspan="7">수집 중...</td></tr>';
+  document.getElementById("logbox").innerHTML = "";
+  document.getElementById("st-total").textContent = "0";
+  document.getElementById("st-010").textContent   = "0";
+  document.getElementById("st-rate").textContent  = "0%";
+  document.getElementById("st-time").textContent  = "0s";
+  document.getElementById("dl-card").style.display = "none";
+  document.getElementById("tbl-btns").style.display = "none";
+  document.getElementById("filter-010-btn").style.display = "";
+  document.getElementById("filter-all-btn").style.display = "none";
+}
+function updateTimer(){
+  const s = Math.floor((Date.now()-startTs)/1000);
+  document.getElementById("st-time").textContent = s >= 60 ? `${Math.floor(s/60)}m${s%60}s` : s+"s";
+}
+function stopTimer(){ clearInterval(timer); }
+function esc(s){ const d=document.createElement("div"); d.textContent=s||""; return d.innerHTML; }
+
+init();
+</script>
+</body>
+</html>
