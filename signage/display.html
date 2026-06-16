@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<title>화면</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; background: #000; overflow: hidden; cursor: none; }
+  #stage { position: fixed; inset: 0; background: #000; }
+
+  /* 크로스페이드용 두 레이어 */
+  .layer {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; transition: opacity .6s ease;
+  }
+  .layer.show { opacity: 1; }
+  .layer img, .layer video {
+    display: block;
+    width: 100%; height: 100%;
+  }
+  /* fit 모드 */
+  .fit-contain img, .fit-contain video { object-fit: contain; }
+  .fit-cover img, .fit-cover video { object-fit: cover; }
+  .fit-fill img, .fit-fill video { object-fit: fill; }
+
+  /* 비디오월: 한 콘텐츠를 N개 화면에 걸쳐 표시 */
+  .wall img, .wall video { object-fit: cover; }
+
+  /* 대기/안내 화면 */
+  #idle {
+    position: fixed; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 14px;
+    color: #5a5a5e; font-family: 'Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+  }
+  #idle .big { font-size: 64px; }
+  #idle .t { font-size: 18px; }
+  #idle.hide { display: none; }
+  #badge {
+    position: fixed; left: 16px; top: 14px; z-index: 50;
+    background: rgba(255,111,15,.9); color: #fff;
+    font: 700 13px/1 'Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+    padding: 7px 12px; border-radius: 20px; opacity: 0;
+    transition: opacity .4s; pointer-events: none;
+  }
+  #badge.show { opacity: 1; }
+</style>
+</head>
+<body>
+  <div id="idle"><div class="big">🥕</div><div class="t">재생 대기 중…</div></div>
+  <div id="stage"></div>
+  <div id="badge"></div>
+  <script src="display.js"></script>
+</body>
+</html>
