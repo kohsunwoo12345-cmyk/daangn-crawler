@@ -2,6 +2,8 @@
 
 > 지역(시/도→구/군→동) 선택 + 카테고리별 010 번호 즉시 추출 + 엑셀 다운로드
 
+> 🖥️ **디지털 사이니지 프로그램**(HDMI 3개 화면에 사진·영상 재생)은 [`signage/`](./signage/README.md) 폴더를 참고하세요.
+
 [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/kohsunwoo12345-cmyk/daangn-crawler)
 
 ---

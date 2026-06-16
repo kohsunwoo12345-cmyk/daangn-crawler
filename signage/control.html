@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Daangn Signage - 제어판</title>
+<style>
+:root{
+  --or:#ff6f0f;--or2:#e55c00;--or-bg:#3a2414;
+  --bg:#161618;--panel:#202024;--card:#26262b;--border:#34343a;
+  --text:#f2f2f4;--sub:#9a9aa2;
+  --green:#27ae60;--red:#e74c3c;--blue:#3a8ee6;
+  --r:12px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Apple SD Gothic Neo','Malgun Gothic',sans-serif;background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column;overflow:hidden}
+
+.hdr{background:linear-gradient(90deg,var(--or),var(--or2));height:54px;display:flex;align-items:center;padding:0 20px;gap:10px;flex-shrink:0}
+.hdr .logo{font-size:22px}
+.hdr h1{font-size:16px;font-weight:800;letter-spacing:-.3px}
+.hdr .tag{background:rgba(255,255,255,.2);font-size:11px;padding:3px 9px;border-radius:20px;font-weight:700}
+.hdr .spacer{flex:1}
+.hdr .hint{font-size:12px;color:rgba(255,255,255,.85)}
+
+.body{flex:1;display:grid;grid-template-columns:330px 1fr;gap:0;min-height:0}
+
+/* 좌측 설정 패널 */
+.side{background:var(--panel);border-right:1px solid var(--border);padding:18px;overflow-y:auto}
+.sec{margin-bottom:22px}
+.sec-t{font-size:12px;font-weight:800;color:var(--or);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px}
+
+.modes{display:flex;flex-direction:column;gap:8px}
+.mode{display:flex;gap:10px;align-items:flex-start;padding:11px 12px;border:1.5px solid var(--border);border-radius:10px;cursor:pointer;transition:.15s;background:var(--card)}
+.mode:hover{border-color:#4a4a52}
+.mode.active{border-color:var(--or);background:var(--or-bg)}
+.mode .ic{font-size:20px;line-height:1}
+.mode .txt{flex:1}
+.mode .name{font-size:13px;font-weight:700}
+.mode .desc{font-size:11px;color:var(--sub);margin-top:2px;line-height:1.4}
+
+.row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.row label{font-size:12px;color:var(--sub);min-width:78px}
+select,input[type=number]{flex:1;background:var(--card);color:var(--text);border:1.5px solid var(--border);border-radius:8px;padding:7px 9px;font-size:13px;outline:none}
+select:focus,input:focus{border-color:var(--or)}
+input[type=number]{max-width:90px}
+
+.assign-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.assign-row .n{width:54px;font-size:12px;font-weight:700;color:var(--text)}
+
+.check{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--sub);cursor:pointer;margin-bottom:8px}
+.check input{width:16px;height:16px;accent-color:var(--or)}
+
+.btns{display:flex;gap:8px;margin-top:8px}
+.btn{flex:1;border:none;border-radius:9px;padding:12px;font-size:14px;font-weight:800;cursor:pointer;transition:.15s}
+.btn-play{background:var(--or);color:#fff}
+.btn-play:hover{background:var(--or2)}
+.btn-stop{background:#3a3a40;color:#fff}
+.btn-stop:hover{background:#46464d}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+
+.playctl{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+.minibtn{background:var(--card);color:var(--text);border:1.5px solid var(--border);border-radius:8px;padding:7px 10px;font-size:12px;font-weight:600;cursor:pointer}
+.minibtn:hover{border-color:var(--or)}
+
+/* 우측 재생목록 영역 */
+.main{padding:18px;overflow-y:auto;display:flex;flex-direction:column;gap:14px}
+.main-top{display:flex;align-items:center;gap:12px}
+.main-top h2{font-size:15px;font-weight:800}
+.main-top .spacer{flex:1}
+.addbtn{background:var(--or);color:#fff;border:none;border-radius:9px;padding:9px 16px;font-size:13px;font-weight:800;cursor:pointer}
+.addbtn:hover{background:var(--or2)}
+
+.lists{display:grid;gap:14px}
+.lists.cols-1{grid-template-columns:1fr}
+.lists.cols-3{grid-template-columns:repeat(3,1fr)}
+
+.list{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:12px;min-height:120px;display:flex;flex-direction:column}
+.list-h{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.list-h .ttl{font-size:13px;font-weight:800}
+.list-h .cnt{font-size:11px;color:var(--sub)}
+.list-h .add-s{margin-left:auto;background:#34343a;color:#fff;border:none;border-radius:7px;padding:5px 9px;font-size:11px;font-weight:700;cursor:pointer}
+.list-h .add-s:hover{background:var(--or)}
+
+.items{display:flex;flex-direction:column;gap:7px;flex:1}
+.empty{color:var(--sub);font-size:12px;text-align:center;padding:24px 8px;border:1.5px dashed var(--border);border-radius:9px}
+
+.item{display:flex;align-items:center;gap:9px;background:var(--panel);border:1px solid var(--border);border-radius:9px;padding:8px 9px}
+.item .thumb{width:42px;height:42px;border-radius:6px;background:#000;object-fit:cover;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:18px}
+.item .meta{flex:1;min-width:0}
+.item .nm{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item .sub{font-size:10px;color:var(--sub);margin-top:2px;display:flex;align-items:center;gap:6px}
+.item .sub .dur{display:flex;align-items:center;gap:3px}
+.item .sub input{width:48px;background:var(--card);border:1px solid var(--border);color:var(--text);border-radius:5px;padding:2px 5px;font-size:11px}
+.item .ops{display:flex;gap:3px;flex-shrink:0}
+.item .ops button{background:#34343a;border:none;color:#cfcfd4;width:24px;height:24px;border-radius:6px;cursor:pointer;font-size:12px}
+.item .ops button:hover{background:var(--or);color:#fff}
+
+.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#000;border:1px solid var(--or);color:#fff;padding:11px 18px;border-radius:24px;font-size:13px;font-weight:700;opacity:0;transition:.3s;pointer-events:none;z-index:100}
+.toast.show{opacity:1}
+.status{font-size:11px;padding:3px 9px;border-radius:20px;font-weight:700}
+.status.on{background:rgba(39,174,96,.18);color:#4ad07d}
+.status.off{background:#34343a;color:var(--sub)}
+</style>
+</head>
+<body>
+  <div class="hdr">
+    <span class="logo">🥕</span>
+    <h1>Daangn Signage</h1>
+    <span class="tag">디지털 사이니지</span>
+    <span class="spacer"></span>
+    <span class="hint">HDMI 3개 화면 미디어 재생</span>
+  </div>
+
+  <div class="body">
+    <!-- 좌측: 설정 -->
+    <aside class="side">
+      <div class="sec">
+        <div class="sec-t">표시 방식</div>
+        <div class="modes" id="modes">
+          <label class="mode active" data-mode="mirror">
+            <span class="ic">🔁</span>
+            <span class="txt"><span class="name">미러링</span>
+              <span class="desc">같은 사진/영상을 3개 화면에 동시에 똑같이 재생</span></span>
+          </label>
+          <label class="mode" data-mode="wall">
+            <span class="ic">🖼️</span>
+            <span class="txt"><span class="name">비디오월</span>
+              <span class="desc">하나의 큰 영상/사진을 3개 화면에 걸쳐 이어서 표시</span></span>
+          </label>
+          <label class="mode" data-mode="separate">
+            <span class="ic">🔢</span>
+            <span class="txt"><span class="name">각각 (독립)</span>
+              <span class="desc">화면마다 서로 다른 재생목록을 따로 재생</span></span>
+          </label>
+        </div>
+      </div>
+
+      <div class="sec">
+        <div class="sec-t">화면 / 모니터</div>
+        <div class="row">
+          <label>화면 개수</label>
+          <select id="screenCount">
+            <option value="1">1개</option>
+            <option value="2">2개</option>
+            <option value="3" selected>3개</option>
+          </select>
+        </div>
+        <div id="assigns"></div>
+        <button class="minibtn" id="refreshDisp" style="margin-top:4px">🔄 모니터 다시 감지</button>
+      </div>
+
+      <div class="sec">
+        <div class="sec-t">재생 옵션</div>
+        <div class="row">
+          <label>사진 표시</label>
+          <input type="number" id="imgDur" min="1" max="600" value="8" /> <span style="font-size:12px;color:var(--sub)">초</span>
+        </div>
+        <div class="row">
+          <label>화면 맞춤</label>
+          <select id="fit">
+            <option value="contain">여백포함(원본비율)</option>
+            <option value="cover" selected>꽉채움(잘림)</option>
+            <option value="fill">늘려채움</option>
+          </select>
+        </div>
+        <label class="check"><input type="checkbox" id="muted" checked /> 영상 음소거</label>
+        <label class="check"><input type="checkbox" id="windowed" /> 테스트(창모드) — 모니터 없이 미리보기</label>
+      </div>
+
+      <div class="sec">
+        <div class="sec-t">제어 <span class="status off" id="status">정지됨</span></div>
+        <div class="btns">
+          <button class="btn btn-play" id="startBtn">▶ 재생 시작</button>
+          <button class="btn btn-stop" id="stopBtn" disabled>■ 정지</button>
+        </div>
+        <div class="playctl">
+          <button class="minibtn" data-act="prev">⏮ 이전</button>
+          <button class="minibtn" data-act="pause">⏸ 일시정지</button>
+          <button class="minibtn" data-act="resume">▶ 재개</button>
+          <button class="minibtn" data-act="next">⏭ 다음</button>
+          <button class="minibtn" data-act="unmute">🔊 소리켜기</button>
+          <button class="minibtn" data-act="mute">🔇 음소거</button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- 우측: 재생목록 -->
+    <main class="main">
+      <div class="main-top">
+        <h2 id="listTitle">재생목록</h2>
+        <span class="spacer"></span>
+        <button class="addbtn" id="addBtn">＋ 사진 / 영상 추가</button>
+      </div>
+      <div class="lists cols-1" id="lists"></div>
+    </main>
+  </div>
+
+  <div class="toast" id="toast"></div>
+  <script src="control.js"></script>
+</body>
+</html>
