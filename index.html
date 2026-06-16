@@ -239,7 +239,7 @@ input[type=number]{max-width:86px}
       <div class="sec">
         <div class="sec-t">재생</div>
         <button class="btn btn-play" id="playHere"><span data-ic="play"></span>이 창에서 전체화면 재생</button>
-        <button class="btn btn-sec" id="open3"><span data-ic="screens"></span>화면 열기 → 각 모니터에 표시</button>
+        <div id="openScreens"></div>
         <div class="playctl">
           <button class="minibtn" data-act="prev"><span class="i" data-ic="prev"></span>이전</button>
           <button class="minibtn" data-act="next"><span class="i" data-ic="next"></span>다음</button>
@@ -262,8 +262,9 @@ input[type=number]{max-width:86px}
       </div>
       <div class="note">
         <div class="nh"><span data-ic="info"></span>멀티 모니터 사용법</div>
-        ① 재생목록을 채우고 → ② <b>화면 열기 → 각 모니터에 표시</b> 클릭 → ③ (자동 배치 미지원 시) 열린 창을 각 모니터로 드래그 → ④ 각 창을 클릭하면 <b>전체화면(소리 켜짐)</b>으로 전환됩니다.<br/>
-        같은 PC·같은 브라우저의 창끼리 재생목록이 자동 동기화됩니다. 전체화면 해제는 <b>Esc</b>.
+        ① 재생목록을 채우고 → ② <b>연결된 모니터 감지</b>(권한 허용) → ③ <b>화면 1·2·3을 하나씩</b> 클릭해 엽니다.<br/>
+        <b>중요:</b> 브라우저가 팝업을 막기 때문에 한 번에 여러 창을 못 엽니다. 그래서 <b>버튼을 하나씩 눌러</b> 각 모니터 창을 여세요(팝업이 차단되면 주소창에서 <b>팝업 허용</b>).<br/>
+        각 창은 배정된 모니터로 자동 이동하며, 창을 한 번 클릭하면 <b>전체화면(소리 켜짐)</b>이 됩니다. 같은 PC·브라우저 창끼리 자동 동기화. 해제는 <b>Esc</b>.
       </div>
       <input type="file" id="fileInput" accept="image/*,video/*" multiple class="hide"/>
     </main>
@@ -441,6 +442,10 @@ function initPlayer(){
   const root=document.getElementById('player');
   const engine=createEngine(root);
   const myScreen=parseInt(params.get('screen')||'1',10)-1;
+  // 전달받은 모니터 좌표로 창 이동/크기 조정(자동 배치)
+  const px=params.get('x');
+  if(px!==null){ try{ window.moveTo(parseInt(px,10),parseInt(params.get('y')||'0',10));
+    window.resizeTo(parseInt(params.get('w')||'1280',10),parseInt(params.get('h')||'720',10)); }catch(e){} }
   const bc=new BroadcastChannel(CHANNEL);
 
   function objURLs(list){ return list.map(it=>({type:it.type,duration:it.duration,url:URL.createObjectURL(it.file)})); }
@@ -505,7 +510,8 @@ function initControl(){
       row.innerHTML=`<label>화면 ${i+1}</label><select data-s="${i}">${opts}</select>`;
       wrap.appendChild(row);
     }
-    wrap.querySelectorAll('select').forEach(sel=>sel.onchange=e=>{state.assign[+e.target.dataset.s]=+e.target.value;});
+    wrap.querySelectorAll('select').forEach(sel=>sel.onchange=e=>{state.assign[+e.target.dataset.s]=+e.target.value;renderOpenButtons();});
+    renderOpenButtons();
     if(scr.length<state.screenCount)
       $('#monNote').textContent=`모니터 ${scr.length}개만 감지됨. 화면 수를 줄이거나 HDMI 연결을 확인하세요.`;
     else $('#monNote').textContent='각 화면을 어느 모니터에 띄울지 선택한 뒤 아래 "화면 열기"를 누르세요.';
@@ -536,6 +542,7 @@ function initControl(){
   function currentTabList(){ return state.mode==='separate' ? state.activeTab : 0; }
 
   function render(){
+    renderOpenButtons();
     const tabs=$('#tabs');
     if(state.mode==='separate'){
       tabs.classList.remove('hide'); tabs.innerHTML='';
@@ -611,24 +618,40 @@ function initControl(){
     document.getElementById('player').classList.add('hide'); document.getElementById('control').classList.remove('hide'); overlayEngine=null; } }
 
   $('#detectMon').onclick=detectMonitors;
-  $('#open3').onclick=async ()=>{
+
+  function screenCoords(i){
+    if(screenDetails && screenDetails.screens.length){
+      return screenDetails.screens[state.assign[i]] || screenDetails.screens[i] || screenDetails.currentScreen || null;
+    }
+    return null;
+  }
+  // 화면 하나만 연다(= 한 번의 사용자 클릭 → 팝업 차단 회피)
+  function openScreen(i){
     const st=buildState();
     const hasMedia = state.mode==='separate' ? st.playlists.some(l=>l.length) : st.playlist.length;
     if(!hasMedia){toast('사진·영상을 먼저 추가하세요');return;}
-    if(!screenDetails && ('getScreenDetails' in window)){ await detectMonitors(); }
+    const s=screenCoords(i);
+    let url=location.pathname+'?role=player&screen='+(i+1)+'&total='+state.screenCount;
+    let feat='width=1280,height=720,left='+(60+i*70)+',top='+(60+i*70);
+    if(s){ url+=`&x=${s.availLeft}&y=${s.availTop}&w=${s.availWidth}&h=${s.availHeight}`;
+      feat=`left=${s.availLeft},top=${s.availTop},width=${s.availWidth},height=${s.availHeight}`; }
+    const w=window.open(url,'signage_screen_'+(i+1),feat);
+    if(!w){ toast('팝업이 차단되었습니다. 주소창에서 팝업을 허용한 뒤 다시 누르세요'); return; }
+    playerWins[i]=w; w.focus&&w.focus();
+    setTimeout(broadcast,500);
+    toast('화면 '+(i+1)+' 창을 열었습니다'+(s?' · 모니터 '+(state.assign[i]+1)+'에 배치':''));
+  }
+  function renderOpenButtons(){
+    const wrap=$('#openScreens'); wrap.innerHTML='';
     for(let i=0;i<state.screenCount;i++){
-      let feat='width=960,height=540,left='+(60+i*80)+',top='+(60+i*40);
-      if(screenDetails && screenDetails.screens.length){
-        const s=screenDetails.screens[state.assign[i]] || screenDetails.screens[i] || screenDetails.currentScreen;
-        if(s) feat=`left=${s.availLeft},top=${s.availTop},width=${s.availWidth},height=${s.availHeight}`;
-      }
-      const w=window.open(location.pathname+'?role=player&screen='+(i+1),'signage_screen_'+(i+1),feat);
-      if(w) playerWins.push(w);
+      const b=document.createElement('button'); b.className='btn btn-sec';
+      const s=screenCoords(i);
+      const label='화면 '+(i+1)+' 열기'+(s?' → 모니터 '+(state.assign[i]+1):'');
+      b.innerHTML='<span class="i">'+ICON.screens+'</span>'+label;
+      b.onclick=()=>openScreen(i);
+      wrap.appendChild(b);
     }
-    setTimeout(broadcast,700);
-    toast(screenDetails ? '각 모니터에 화면을 배치했습니다. 전체화면이 안 되면 창을 한 번 클릭하세요'
-                         : '화면 창을 열었습니다. 각 모니터로 옮긴 뒤 클릭하면 전체화면됩니다');
-  };
+  }
 
   bc.onmessage=(e)=>{ if(e.data && e.data.t==='hello'){ bc.postMessage(window._lastState||buildState()); } };
 
