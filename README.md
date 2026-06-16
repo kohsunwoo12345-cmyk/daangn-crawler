@@ -2,7 +2,13 @@
 
 > 지역(시/도→구/군→동) 선택 + 카테고리별 010 번호 즉시 추출 + 엑셀 다운로드
 
-> 🖥️ **디지털 사이니지 프로그램**(HDMI 3개 화면에 사진·영상 재생)은 [`signage/`](./signage/README.md) 폴더를 참고하세요.
+> 🖥️ **디지털 사이니지** — 두 가지 버전 제공
+> - **웹 버전** (`index.html`): 설치 없이 브라우저에서 바로 사진·영상 재생. Cloudflare Pages(`daangn-crawler.pages.dev`)로 호스팅. 멀티 모니터는 화면 창을 띄워 동기화 재생.
+> - **데스크톱 버전** (`signage/`): Electron 앱. HDMI 3개 화면에 전체화면 자동 배치. [`signage/README.md`](./signage/README.md) 참고.
+
+### Cloudflare Pages 배포 메모
+- 정적 사이트이므로 **빌드 명령 없음 / 출력 디렉터리 `/`(루트)** 로 두면 루트 `index.html`이 그대로 서빙됩니다.
+- `*.pages.dev` 루트 도메인은 **프로덕션 브랜치(main)** 의 내용을 보여줍니다. 기능 브랜치 푸시는 별도 미리보기 URL로 배포되니, 루트 도메인 반영은 **main 병합** 후 적용됩니다.
 
 [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/kohsunwoo12345-cmyk/daangn-crawler)
 
