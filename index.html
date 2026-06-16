@@ -140,9 +140,16 @@ input[type=number]{max-width:84px}
       </div>
 
       <div class="sec">
+        <div class="sec-t">모니터 (HDMI)</div>
+        <button class="btn btn-sec" id="detectMon">🔍 연결된 모니터 감지</button>
+        <div id="monAssign"></div>
+        <div id="monNote" style="font-size:11px;color:var(--sub);line-height:1.6;margin-top:4px"></div>
+      </div>
+
+      <div class="sec">
         <div class="sec-t">재생</div>
         <button class="btn btn-play" id="playHere">▶ 이 창에서 전체화면 재생</button>
-        <button class="btn btn-sec" id="open3">🖥️ 화면 창 열기 (멀티 모니터)</button>
+        <button class="btn btn-sec" id="open3">🖥️ 화면 열기 → 각 모니터에 표시</button>
         <div class="playctl">
           <button class="minibtn" data-act="prev">⏮ 이전</button>
           <button class="minibtn" data-act="next">⏭ 다음</button>
@@ -301,11 +308,10 @@ function initPlayer(){
 
   // 클릭 → 전체화면 + 소리
   const hint=document.getElementById('player-hint');
-  root.addEventListener('click',()=>{
-    if(!document.fullscreenElement) root.requestFullscreen().catch(()=>{});
-    engine.setMuted(false);
-    hint.classList.add('gone');
-  });
+  function goFull(){ if(!document.fullscreenElement) return root.requestFullscreen().then(()=>hint.classList.add('gone')); return Promise.resolve(); }
+  root.addEventListener('click',()=>{ goFull().catch(()=>{}); engine.setMuted(false); hint.classList.add('gone'); });
+  // 팝업은 사용자 제스처로 열렸으므로 자동 전체화면을 우선 시도(실패 시 클릭 안내 유지)
+  goFull().catch(()=>{});
   document.addEventListener('keydown',(e)=>{ if(e.key==='Escape'&&document.fullscreenElement) document.exitFullscreen(); });
 }
 
@@ -317,9 +323,42 @@ function initControl(){
   const $$=s=>document.querySelectorAll(s);
   function toast(msg){const t=$('#toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),2400);}
 
-  const state={ mode:'mirror', screenCount:3, lists:[[],[],[]], activeTab:0 };
+  const state={ mode:'mirror', screenCount:3, lists:[[],[],[]], activeTab:0, assign:[0,1,2] };
   let overlayEngine=null;
   let playerWins=[];
+  let screenDetails=null;
+
+  // ── 모니터 감지(Window Management API) ──
+  async function detectMonitors(){
+    if(!('getScreenDetails' in window)){
+      $('#monNote').textContent='이 브라우저는 자동 모니터 배치를 지원하지 않습니다(Chrome/Edge 권장). 화면 창을 연 뒤 각 모니터로 직접 옮겨 클릭하세요.';
+      renderMonitors(); return;
+    }
+    try{
+      screenDetails=await window.getScreenDetails();
+      screenDetails.addEventListener('screenschange',renderMonitors);
+      toast(screenDetails.screens.length+'개 모니터 감지됨');
+    }catch(e){
+      $('#monNote').textContent='모니터 접근 권한이 거부되었습니다. 주소창의 권한을 허용한 뒤 다시 시도하거나, 창을 직접 옮겨 사용하세요.';
+    }
+    renderMonitors();
+  }
+  function renderMonitors(){
+    const wrap=$('#monAssign'); wrap.innerHTML='';
+    if(!screenDetails){ return; }
+    const scr=screenDetails.screens;
+    for(let i=0;i<state.screenCount;i++){
+      if(state.assign[i]==null||state.assign[i]>=scr.length) state.assign[i]=Math.min(i,scr.length-1);
+      const opts=scr.map((s,si)=>`<option value="${si}" ${state.assign[i]===si?'selected':''}>모니터 ${si+1} (${s.width}×${s.height})${s.isPrimary?' · 주':''}</option>`).join('');
+      const row=document.createElement('div'); row.className='row';
+      row.innerHTML=`<label>화면 ${i+1}</label><select data-s="${i}">${opts}</select>`;
+      wrap.appendChild(row);
+    }
+    wrap.querySelectorAll('select').forEach(sel=>sel.onchange=e=>{state.assign[+e.target.dataset.s]=+e.target.value;});
+    if(scr.length<state.screenCount)
+      $('#monNote').textContent=`⚠ 모니터 ${scr.length}개만 감지됨. 화면 수를 줄이거나 HDMI 연결을 확인하세요.`;
+    else $('#monNote').textContent='각 화면을 어느 모니터에 띄울지 선택한 뒤 아래 "화면 열기"를 누르세요.';
+  }
 
   function buildState(){
     const defaults={ imageDuration:parseInt($('#imgDur').value,10)||8, fit:$('#fit').value, muted:$('#muted').checked };
@@ -394,7 +433,7 @@ function initControl(){
 
   // 이벤트
   $$('#modes .mode').forEach(m=>m.onclick=()=>setMode(m.dataset.mode));
-  $('#screenCount').onchange=e=>{state.screenCount=parseInt(e.target.value,10);if(state.activeTab>=state.screenCount)state.activeTab=0;render();};
+  $('#screenCount').onchange=e=>{state.screenCount=parseInt(e.target.value,10);if(state.activeTab>=state.screenCount)state.activeTab=0;render();renderMonitors();};
   $('#addBtn').onclick=()=>$('#fileInput').click();
   $('#fileInput').onchange=e=>{addFiles(e.target.files,currentTabList());e.target.value='';};
   ['imgDur','fit','muted'].forEach(id=>$('#'+id).onchange=broadcast);
@@ -425,17 +464,25 @@ function initControl(){
   function escClose(e){ if(e.key==='Escape'){ if(document.fullscreenElement)document.exitFullscreen();
     document.getElementById('player').classList.add('hide'); document.getElementById('control').classList.remove('hide'); overlayEngine=null; } }
 
-  // 멀티 모니터 창 열기
-  $('#open3').onclick=()=>{
+  // 멀티 모니터 창 열기 (감지된 모니터 위치로 자동 배치)
+  $('#detectMon').onclick=detectMonitors;
+  $('#open3').onclick=async ()=>{
     const st=buildState();
     const hasMedia = state.mode==='separate' ? st.playlists.some(l=>l.length) : st.playlist.length;
     if(!hasMedia){toast('사진·영상을 먼저 추가하세요');return;}
-    for(let i=1;i<=state.screenCount;i++){
-      const w=window.open(location.pathname+'?role=player&screen='+i,'signage_screen_'+i,'width=960,height=540');
+    if(!screenDetails && ('getScreenDetails' in window)){ await detectMonitors(); }
+    for(let i=0;i<state.screenCount;i++){
+      let feat='width=960,height=540,left='+(60+i*80)+',top='+(60+i*40);
+      if(screenDetails && screenDetails.screens.length){
+        const s=screenDetails.screens[state.assign[i]] || screenDetails.screens[i] || screenDetails.currentScreen;
+        if(s) feat=`left=${s.availLeft},top=${s.availTop},width=${s.availWidth},height=${s.availHeight}`;
+      }
+      const w=window.open(location.pathname+'?role=player&screen='+(i+1),'signage_screen_'+(i+1),feat);
       if(w) playerWins.push(w);
     }
-    setTimeout(broadcast,600); // 창 로드 후 상태 전송
-    toast(state.screenCount+'개 화면 창을 열었습니다. 각 모니터로 옮긴 뒤 클릭하세요');
+    setTimeout(broadcast,700); // 창 로드 후 상태 전송
+    toast(screenDetails ? '각 모니터에 화면을 배치했습니다. 전체화면이 안 되면 창을 한 번 클릭하세요'
+                         : '화면 창을 열었습니다. 각 모니터로 옮긴 뒤 클릭하면 전체화면됩니다');
   };
 
   // 플레이어 창이 hello 보내면 현재 상태 응답
